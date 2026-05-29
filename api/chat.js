@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
             return res.status(500).json({ error: 'API-ключ отсутствует в настройках Vercel' });
         }
 
-        // Внимание на правильное имя класса: GoogleGenAI
+        // Правильный вызов класса из библиотеки Google
         const ai = new GoogleGenAI({ apiKey });
         const model = ai.getGenerativeModel({ 
             model: 'gemini-1.5-flash',
