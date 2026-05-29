@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
+    // Разрешаем только POST-запросы
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -13,12 +14,29 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'API-ключ отсутствует в настройках Vercel' });
         }
 
+        // Инициализируем клиент
         const ai = new GoogleGenerativeAI(apiKey);
         const model = ai.getGenerativeModel({
             model: 'gemini-1.5-flash',
             generationConfig: {
-                // Точное имя параметра для JavaScript SDK:
-                responseMimeType: "application/json"
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        html: {
+                            type: "STRING",
+                            description: "HTML-код (только содержимое body или полная структура без внешних файлов)"
+                        },
+                        css: {
+                            type: "STRING",
+                            description: "CSS-код"
+                        },
+                        js: {
+                            type: "STRING",
+                            description: "JavaScript-код"
+                        }
+                    }
+                }
             }
         });
 
@@ -30,12 +48,14 @@ export default async function handler(req, res) {
           "css": "код css здесь",
           "js": "код javascript здесь"
         }
+        Все поля (html, css, js) должны быть заполнены. Не оставляй поля пустыми.
         Не пиши никаких пояснений, Markdown-разметки (типа \`\`\`json) вне JSON. Только чистый валидный JSON объект.
         `;
 
         const result = await model.generateContent([systemInstruction, prompt]);
         const responseText = result.response.text();
 
+        // Безопасный парсинг JSON с обработкой ошибок
         let codeJson;
         try {
             codeJson = JSON.parse(responseText);
