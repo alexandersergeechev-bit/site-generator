@@ -1,21 +1,33 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
+    // Разрешаем только POST запросы
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const { prompt } = req.body;
+        // Подстраховка на случай, если req.body пришел в виде строки
+        let body = req.body;
+        if (typeof body === 'string') {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                return res.status(400).json({ error: 'Невалидный JSON в теле запроса' });
+            }
+        }
+
+        const { prompt } = body;
         const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
             return res.status(500).json({ error: 'API-ключ отсутствует в настройках Vercel' });
         }
 
+        // Инициализируем Google Generative AI
         const ai = new GoogleGenerativeAI(apiKey);
 
-        // Настраиваем системную инструкцию правильно через конфигурацию модели
+        // Системная инструкция для строгого форматирования
         const systemInstruction = `
         Ты — эксперт по веб-разработке. Твоя задача — сгенерировать работающий сайт (HTML, CSS, JavaScript) по запросу пользователя.
         Ты должен вернуть ответ СТРОГО в формате JSON со следующей структурой:
@@ -27,9 +39,9 @@ export default async function handler(req, res) {
         Важно: Не пиши никаких пояснений. Не оборачивай JSON в markdown разметку вроде \`\`\`json ... \`\`\`. Верни только чистый текст JSON объекта, готовый для парсинга.
         `;
 
-        // В новой версии передаем настройки в getGenerativeModel
+        // Используем 'gemini-1.5-flash-latest' для точной адресации в актуальном SDK
         const model = ai.getGenerativeModel({ 
-            model: 'gemini-1.5-flash',
+            model: 'gemini-1.5-flash-latest',
             systemInstruction: systemInstruction,
             // Включаем жесткое требование к JSON на уровне самого API Gemini
             generationConfig: {
@@ -37,11 +49,11 @@ export default async function handler(req, res) {
             }
         });
 
-        // Теперь отправляем только чистый промпт пользователя
+        // Отправляем чистый промпт пользователя
         const result = await model.generateContent(prompt);
         let responseText = result.response.text().trim();
 
-        // Подстраховка на случай лишних символов (хотя responseMimeType гарантирует чистый JSON)
+        // Дополнительная очистка на случай форс-мажоров с markdown-разметкой
         if (responseText.startsWith("```")) {
             responseText = responseText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
         }
@@ -56,6 +68,7 @@ export default async function handler(req, res) {
             });
         }
 
+        // Возвращаем успешный результат клиентскому скрипту
         return res.status(200).json(codeJson);
 
     } catch (error) {
