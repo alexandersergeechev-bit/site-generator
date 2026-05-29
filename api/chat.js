@@ -14,10 +14,8 @@ export default async function handler(req, res) {
         }
 
         const ai = new GoogleGenerativeAI(apiKey);
-        // Чистый вызов без настроек конфигурации, которые не поддерживает старая библиотека
-        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-        // Усиливаем инструкцию, чтобы ИИ выдал идеальный JSON без Markdown-кавычек
+        // Настраиваем системную инструкцию правильно через конфигурацию модели
         const systemInstruction = `
         Ты — эксперт по веб-разработке. Твоя задача — сгенерировать работающий сайт (HTML, CSS, JavaScript) по запросу пользователя.
         Ты должен вернуть ответ СТРОГО в формате JSON со следующей структурой:
@@ -29,10 +27,21 @@ export default async function handler(req, res) {
         Важно: Не пиши никаких пояснений. Не оборачивай JSON в markdown разметку вроде \`\`\`json ... \`\`\`. Верни только чистый текст JSON объекта, готовый для парсинга.
         `;
 
-        const result = await model.generateContent([systemInstruction, prompt]);
+        // В новой версии передаем настройки в getGenerativeModel
+        const model = ai.getGenerativeModel({ 
+            model: 'gemini-1.5-flash',
+            systemInstruction: systemInstruction,
+            // Включаем жесткое требование к JSON на уровне самого API Gemini
+            generationConfig: {
+                responseMimeType: "application/json"
+            }
+        });
+
+        // Теперь отправляем только чистый промпт пользователя
+        const result = await model.generateContent(prompt);
         let responseText = result.response.text().trim();
 
-        // Небольшая подстраховка: если Gemini всё-таки засунет JSON в блоки ```json ```, мы их срежем
+        // Подстраховка на случай лишних символов (хотя responseMimeType гарантирует чистый JSON)
         if (responseText.startsWith("```")) {
             responseText = responseText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
         }
