@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
-    // Разрешаем только POST-запросы
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -14,32 +13,11 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'API-ключ отсутствует в настройках Vercel' });
         }
 
-        // Инициализируем клиент
         const ai = new GoogleGenerativeAI(apiKey);
-        const model = ai.getGenerativeModel({
-            model: 'gemini-1.5-flash',
-            generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "OBJECT",
-                    properties: {
-                        html: {
-                            type: "STRING",
-                            description: "HTML-код (только содержимое body или полная структура без внешних файлов)"
-                        },
-                        css: {
-                            type: "STRING",
-                            description: "CSS-код"
-                        },
-                        js: {
-                            type: "STRING",
-                            description: "JavaScript-код"
-                        }
-                    }
-                }
-            }
-        });
+        // Чистый вызов без настроек конфигурации, которые не поддерживает старая библиотека
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
+        // Усиливаем инструкцию, чтобы ИИ выдал идеальный JSON без Markdown-кавычек
         const systemInstruction = `
         Ты — эксперт по веб-разработке. Твоя задача — сгенерировать работающий сайт (HTML, CSS, JavaScript) по запросу пользователя.
         Ты должен вернуть ответ СТРОГО в формате JSON со следующей структурой:
@@ -48,14 +26,17 @@ export default async function handler(req, res) {
           "css": "код css здесь",
           "js": "код javascript здесь"
         }
-        Все поля (html, css, js) должны быть заполнены. Не оставляй поля пустыми.
-        Не пиши никаких пояснений, Markdown-разметки (типа \`\`\`json) вне JSON. Только чистый валидный JSON объект.
+        Важно: Не пиши никаких пояснений. Не оборачивай JSON в markdown разметку вроде \`\`\`json ... \`\`\`. Верни только чистый текст JSON объекта, готовый для парсинга.
         `;
 
         const result = await model.generateContent([systemInstruction, prompt]);
-        const responseText = result.response.text();
+        let responseText = result.response.text().trim();
 
-        // Безопасный парсинг JSON с обработкой ошибок
+        // Небольшая подстраховка: если Gemini всё-таки засунет JSON в блоки ```json ```, мы их срежем
+        if (responseText.startsWith("```")) {
+            responseText = responseText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+        }
+
         let codeJson;
         try {
             codeJson = JSON.parse(responseText);
