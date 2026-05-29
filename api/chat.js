@@ -1,6 +1,7 @@
-const { GoogleGenAI } = require("@google/generative-ai");
+import { GoogleGenAI } from "@google/generative-ai";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
+    // Разрешаем только POST-запросы
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -13,13 +14,14 @@ module.exports = async function handler(req, res) {
             return res.status(500).json({ error: 'API-ключ отсутствует в настройках Vercel' });
         }
 
-        // Правильный вызов класса из библиотеки Google
+        // Внимание: правильное имя класса с маленькой 'n'
         const ai = new GoogleGenAI({ apiKey });
         const model = ai.getGenerativeModel({ 
             model: 'gemini-1.5-flash',
-            generationConfig: { responseMimeType: "application/json" }
+            generationConfig: { responseMimeType: "application/json" } // Заставляем Gemini отвечать чистым JSON
         });
 
+        // Системная инструкция для ИИ
         const systemInstruction = `
         Ты — эксперт по веб-разработке. Твоя задача — сгенерировать работающий сайт (HTML, CSS, JavaScript) по запросу пользователя.
         Ты должен вернуть ответ СТРОГО в формате JSON со следующей структурой:
@@ -34,10 +36,11 @@ module.exports = async function handler(req, res) {
         const result = await model.generateContent([systemInstruction, prompt]);
         const responseText = result.response.text();
 
+        // Парсим ответ от ИИ и отправляем обратно на фронтенд
         const codeJson = JSON.parse(responseText);
         return res.status(200).json(codeJson);
 
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
-};
+}
