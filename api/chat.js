@@ -39,15 +39,15 @@ export default async function handler(req, res) {
         Важно: Не пиши никаких пояснений. Не оборачивай JSON в markdown разметку вроде \`\`\`json ... \`\`\`. Верни только чистый текст JSON объекта, готовый для парсинга.
         `;
 
-        // Используем актуальную и стабильную модель gemini-2.5-flash
-const model = ai.getGenerativeModel({ 
-    model: 'gemini-2.5-flash', // <-- МЕНЯЕМ СТРОКУ ТУТ
-    systemInstruction: systemInstruction,
-    // Включаем жесткое требование к JSON на уровне самого API Gemini
-    generationConfig: {
-        responseMimeType: "application/json"
-    }
-});
+        // Используем стабильную модель gemini-2.5-flash
+        const model = ai.getGenerativeModel({ 
+            model: 'gemini-2.5-flash',
+            systemInstruction: systemInstruction,
+            // Включаем жесткое требование к JSON на уровне самого API Gemini
+            generationConfig: {
+                responseMimeType: "application/json"
+            }
+        });
 
         // Отправляем чистый промпт пользователя
         const result = await model.generateContent(prompt);
@@ -55,7 +55,8 @@ const model = ai.getGenerativeModel({
 
         // Дополнительная очистка на случай форс-мажоров с markdown-разметкой
         if (responseText.startsWith("```")) {
-            responseText = responseText.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+            responseText = responseText.replace(/^
+```json\s*/i, "").replace(/```$/, "").trim();
         }
 
         let codeJson;
