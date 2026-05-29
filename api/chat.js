@@ -1,13 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
-    // Разрешаем только POST запросы
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        // Подстраховка на случай, если req.body пришел в виде строки
         let body = req.body;
         if (typeof body === 'string') {
             try {
@@ -24,10 +22,8 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'API-ключ отсутствует в настройках Vercel' });
         }
 
-        // Инициализируем Google Generative AI
         const ai = new GoogleGenerativeAI(apiKey);
 
-        // Системная инструкция для строгого форматирования
         const systemInstruction = `
         Ты — эксперт по веб-разработке. Твоя задача — сгенерировать работающий сайт (HTML, CSS, JavaScript) по запросу пользователя.
         Ты должен вернуть ответ СТРОГО в формате JSON со следующей структурой:
@@ -39,24 +35,22 @@ export default async function handler(req, res) {
         Важно: Не пиши никаких пояснений. Не оборачивай JSON в markdown разметку вроде \`\`\`json ... \`\`\`. Верни только чистый текст JSON объекта, готовый для парсинга.
         `;
 
-        // Используем стабильную модель gemini-2.5-flash
         const model = ai.getGenerativeModel({ 
             model: 'gemini-2.5-flash',
             systemInstruction: systemInstruction,
-            // Включаем жесткое требование к JSON на уровне самого API Gemini
             generationConfig: {
                 responseMimeType: "application/json"
             }
         });
 
-        // Отправляем чистый промпт пользователя
         const result = await model.generateContent(prompt);
         let responseText = result.response.text().trim();
 
-        // Дополнительная очистка на случай форс-мажоров с markdown-разметкой
+        // Простая и безопасная очистка строк БЕЗ регулярных выражений
         if (responseText.startsWith("```")) {
-            responseText = responseText.replace(/^
-```json\s*/i, "").replace(/```$/, "").trim();
+            responseText = responseText.replace("```json", "");
+            responseText = responseText.replace("```", "");
+            responseText = responseText.trim();
         }
 
         let codeJson;
@@ -69,7 +63,6 @@ export default async function handler(req, res) {
             });
         }
 
-        // Возвращаем успешный результат клиентскому скрипту
         return res.status(200).json(codeJson);
 
     } catch (error) {
