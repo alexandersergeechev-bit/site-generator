@@ -14,14 +14,13 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'API-ключ отсутствует в настройках Vercel' });
         }
 
-        // Внимание: правильное имя класса с маленькой 'n'
+        // Вот оно, абсолютно точное имя класса: GoogleGenAI
         const ai = new GoogleGenAI({ apiKey });
         const model = ai.getGenerativeModel({ 
             model: 'gemini-1.5-flash',
-            generationConfig: { responseMimeType: "application/json" } // Заставляем Gemini отвечать чистым JSON
+            generationConfig: { responseMimeType: "application/json" }
         });
 
-        // Системная инструкция для ИИ
         const systemInstruction = `
         Ты — эксперт по веб-разработке. Твоя задача — сгенерировать работающий сайт (HTML, CSS, JavaScript) по запросу пользователя.
         Ты должен вернуть ответ СТРОГО в формате JSON со следующей структурой:
@@ -36,7 +35,6 @@ export default async function handler(req, res) {
         const result = await model.generateContent([systemInstruction, prompt]);
         const responseText = result.response.text();
 
-        // Парсим ответ от ИИ и отправляем обратно на фронтенд
         const codeJson = JSON.parse(responseText);
         return res.status(200).json(codeJson);
 
