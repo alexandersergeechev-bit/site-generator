@@ -1,6 +1,6 @@
-﻿import { GoogleGenAI } from "@google/generative-ai";
+const { GoogleGenAI } = require("@google/generative-ai");
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     // Разрешаем только POST-запросы
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -41,7 +41,6 @@ export default async function handler(req, res) {
         return res.status(200).json(codeJson);
 
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Ошибка ИИ или неверный формат ответа.' });
+        return res.status(500).json({ error: error.message });
     }
-}
+};
