@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
-    // Разрешаем только POST-запросы
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -14,12 +13,12 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'API-ключ отсутствует в настройках Vercel' });
         }
 
-        // Инициализируем клиент с правильным именем класса
         const ai = new GoogleGenerativeAI(apiKey);
         const model = ai.getGenerativeModel({
             model: 'gemini-1.5-flash',
             generationConfig: {
-                response_mime_type: "application/json"
+                // Точное имя параметра для JavaScript SDK:
+                responseMimeType: "application/json"
             }
         });
 
@@ -37,7 +36,6 @@ export default async function handler(req, res) {
         const result = await model.generateContent([systemInstruction, prompt]);
         const responseText = result.response.text();
 
-        // Безопасный парсинг JSON с обработкой ошибок
         let codeJson;
         try {
             codeJson = JSON.parse(responseText);
