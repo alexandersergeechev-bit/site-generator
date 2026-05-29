@@ -1,4 +1,4 @@
-﻿import { GoogleGenAI } from '@google/generative-ai';
+﻿import { GoogleGenAI } from "@google/generative-ai";
 
 export default async function handler(req, res) {
     // Разрешаем только POST-запросы
