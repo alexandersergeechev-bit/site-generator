@@ -39,15 +39,15 @@ export default async function handler(req, res) {
         Важно: Не пиши никаких пояснений. Не оборачивай JSON в markdown разметку вроде \`\`\`json ... \`\`\`. Верни только чистый текст JSON объекта, готовый для парсинга.
         `;
 
-        // Используем 'gemini-1.5-flash-latest' для точной адресации в актуальном SDK
-        const model = ai.getGenerativeModel({ 
-            model: 'gemini-1.5-flash-latest',
-            systemInstruction: systemInstruction,
-            // Включаем жесткое требование к JSON на уровне самого API Gemini
-            generationConfig: {
-                responseMimeType: "application/json"
-            }
-        });
+        // Используем актуальную и стабильную модель gemini-2.5-flash
+const model = ai.getGenerativeModel({ 
+    model: 'gemini-2.5-flash', // <-- МЕНЯЕМ СТРОКУ ТУТ
+    systemInstruction: systemInstruction,
+    // Включаем жесткое требование к JSON на уровне самого API Gemini
+    generationConfig: {
+        responseMimeType: "application/json"
+    }
+});
 
         // Отправляем чистый промпт пользователя
         const result = await model.generateContent(prompt);
